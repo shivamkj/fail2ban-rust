@@ -1,0 +1,5 @@
+[[watcher]]
+path = "/home/shivam/fail2ban-rust/test1.log"
+regex = "Authentication failed .* from <IP>"
+findtime = 10  # duration in seconds
+maxretry = 3  # threshold (number of occurrences)

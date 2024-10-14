@@ -1,0 +1,11 @@
+[[watcher]]
+path = "/home/shivam/fail2ban-rust/test2.log"
+regex = 'Multiple Invalid Requests from <IP>'
+findtime = 10  # duration in seconds
+maxretry = 3  # threshold (number of occurrences)
+
+[[watcher]]
+path = "/home/shivam/fail2ban-rust/test2_1.log"
+regex = 'Multiple Unauthorised attempts from <IP>'
+findtime = 10  # duration in seconds
+maxretry = 3  # threshold (number of occurrences)
