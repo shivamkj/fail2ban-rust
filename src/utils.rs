@@ -14,16 +14,16 @@ struct Config {
 #[derive(Deserialize)]
 struct WatchConfigRaw {
   path: String,
-  regex: String,      // Regular expression for matching IP addresses or other patterns
-  findtime: u64,    // Duration (in seconds) to track occurrences
+  regex: String,   // Regular expression for matching IP addresses or other patterns
+  findtime: u64,   // Duration (in seconds) to track occurrences
   maxretry: usize, // Threshold for number of occurrences
 }
 
 pub struct WatchConfig {
   pub path: String,
-  pub regex: Regex,         // Pre-compiled regex
+  pub regex: Regex,       // Pre-compiled regex
   pub findtime: Duration, // Duration to track IP occurrences
-  pub maxretry: usize,   // Threshold for number of occurrences
+  pub maxretry: usize,    // Threshold for number of occurrences
 }
 
 // Function to read all TOML config files in config directory and load them

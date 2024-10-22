@@ -6,31 +6,29 @@ use std::path::Path;
 use std::sync::mpsc::channel;
 use utils::WatchConfig;
 mod ip;
+mod macros;
 mod utils;
 
 // Function to search for IP addresses or other patterns using regex
-fn search_ip_in_new_lines(ip_tracker: &mut ip::Tracker, start_line: u64, config: &WatchConfig) {
+fn search_ip_in_new_lines(ip_tracker: &ip::Tracker, start_line: u64, config: &WatchConfig) {
   if let Ok(mut file) = File::open(&config.path) {
     let _ = file.seek(SeekFrom::Start(start_line));
     let reader = BufReader::new(file);
 
     for (_, line) in reader.lines().enumerate() {
-      if let Ok(line_content) = line {
-        if let Some(ip_match) = config.regex.captures(&line_content).and_then(|v| v.get(1)) {
-          let ip_str = &ip_match.as_str();
-          // Add the IP occurrence
-          ip_tracker.add_ip(ip_str, config.findtime);
+      let line_content = expr!(line, break);
 
-          // Check if the IP exceeded the threshold
-          if ip_tracker.check_ip(ip_str, config.maxretry) {
-            println!(
-              "IP {} found more than {} times in the last {:?} seconds",
-              ip_str,
-              config.maxretry,
-              config.findtime.as_secs()
-            );
-          };
-        }
+      // Find IP Address
+      if let Some(ip_match) = config.regex.captures(&line_content).and_then(|v| v.get(1)) {
+        let ip_str = ip_match.as_str();
+
+        // Add the IP occurrence
+        ip_tracker.add_ip(String::from(ip_str), config.findtime);
+
+        // Check if the IP exceeded the threshold
+        if ip_tracker.check_ip(&ip_str, config.maxretry) {
+          ip_tracker.block_ip(String::from(ip_str));
+        };
       }
     }
   }
@@ -67,16 +65,15 @@ fn watch_files(all_config: Vec<utils::WatchConfig>) -> notify::Result<()> {
         // Get the current file length
         let current_len = utils::file_length(path_str);
 
-        println!("File changed: {} {:?}", path_str, event);
+        println!("File changed: {}", path_str);
 
         // If new lines were added
         if current_len > previous_len {
           // Find the corresponding config for the file
-          if let Some(config) = &all_config.iter().find(|c| c.path == path_str) {
-            // Search for IP addresses or pattern in new lines
-            if let Some(ip_tracker) = ip_trackers.get_mut(path_str) {
-              search_ip_in_new_lines(ip_tracker, previous_len, &config);
-            }
+          let config = all_config.iter().find(|c| c.path == path_str).expect("Config not found");
+          // Search for IP addresses or pattern in new lines
+          if let Some(ip_tracker) = ip_trackers.get(path_str) {
+            search_ip_in_new_lines(ip_tracker, previous_len, &config);
           }
         }
 
@@ -89,8 +86,9 @@ fn watch_files(all_config: Vec<utils::WatchConfig>) -> notify::Result<()> {
 
   Ok(())
 }
-
-fn main() {
+#[tokio::main]
+#[cfg(target_os = "linux")]
+async fn main() {
   // Load all configs from the "configs" directory
   let configs = utils::load_config("./test-config");
 
